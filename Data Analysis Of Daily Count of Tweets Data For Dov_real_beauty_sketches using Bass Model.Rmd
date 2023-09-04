@@ -1,0 +1,121 @@
+---
+title: "Data Analysis using Bass Model"
+author: "Tobi Joshua"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data Description
+
+Data Description: Daily Count of Tweets for "Dove_real_beauty_sketches"
+
+Date Range: The data covers a period from April 15, 2013, to May 5, 2013, representing 21 consecutive days.
+
+Count of Tweets: Each entry in the dataset represents the daily count of tweets that included the hashtag or topic "Dove_real_beauty_sketches." The counts vary from day to day.
+
+# Load the Libraries
+
+```{r}
+library(ggplot2)
+library(knitr)
+#install.packages("BASS")
+library(BASS)
+
+```
+
+# Load the dataset
+
+```{r}
+df<-read.csv("dove_daily.csv",header = TRUE,sep=",")
+head(df,n=6) # check the data
+sum(is.na(df)) # check for missing data
+
+
+```
+
+# Generate the summary statistics for the daily count of the number of tweets.
+
+```{r}
+summary(df[,2])
+```
+
+The summary statistics provide a quick overview of the daily count of tweets data. Here are some insights we can derive from the output: 1. The minimum number of tweets per day is 209, while the maximum is 6143.
+
+2.  The median number of tweets per day is 852, which means that half of the days have less than 852 tweets and half of the days have more than 852 tweets.
+
+3.  The mean number of tweets per day is 1713, which is higher than the median. This indicates that there are some days with a very high number of tweets that are pulling up the mean.
+
+4.  The first quartile (25th percentile) is 450, and the third quartile (75th percentile) is 2192. This means that 25% of the days have less than 450 tweets, and 25% of the days have more than 2192 tweets.
+
+5.  The range between the first and third quartiles (interquartile range) is 1742, which is larger than the range between the minimum and maximum values. This indicates that there is a significant variability in the number of tweets per day.
+
+The summary statistics suggest that the daily count of tweets data is highly variable, with some days having a very high number of tweets and others having a relatively low number of tweets.
+
+The mean is higher than the median, indicating that there are some days with a very high number of tweets that are driving up the average.
+
+# To account for the above results, we can Plot the daily count of number of tweets over time.
+
+```{r}
+options(warn=-1)
+# import plotly library
+library(plotly)
+plot_ly(df, x=df$Date, y=df$Dove_real_beauty_sketches,type = "histogram",color = I("orange"),alpha = 0.9) %>%
+animation_opts(transition = 1)
+```
+
+1.  The plot shows that the number of tweets containing the keywords "dove", "real", "beauty", and "sketches" increased rapidly in the first few days after the release of the ad.
+2.  The peak number of tweets occurred between April 1 and April 4, with over 6000 tweets on a single day.
+3.  The plot also shows that the number of tweets started to decrease after April 4, indicating that the initial excitement or interest in the ad may have started to fade.
+
+# We can Fit a bass model based on the first 8 days of data, and plot the output as:
+
+```{r}
+sample <- df[1:8,]
+table(sample)
+dove_bass_model <- bass(sample$Date,sample$Dove_real_beauty_sketches)
+plot(dove_bass_model)
+```
+
+The first plot shows the number of basis functions versus MCMC iteration (post-burn). This plot helps to identify the optimal number of basis functions to use in the model. The plot shows that the maximum number of basis functions is 4, indicating that the model requires a relatively simple functional form to fit the data.
+
+The second plot shows the error variance versus MCMC iteration (post-burn). This plot helps to identify whether the model captures the variability in the data. The plot shows a well-ordered signal line, suggesting that the model can capture the variability in the data well.
+
+The third plot shows the posterior predictive interval versus observed data. This plot helps to evaluate the predictive performance of the model. The plot shows a positive straight line with points between 2000 to 3000 on the line, indicating that the model fits the data well. However, some of the other points are outside the line, suggesting that the model may not capture all of the variability in the data.
+
+The fourth plot shows the density residual plot, which helps to identify whether the residuals of the model follow a normal distribution. The plot shows a curve that touches the histogram top center, suggesting that the residuals follow a normal distribution and that the model fits the data well.
+
+# Based on this model, we can predict the daily count of number of tweets in the next five days By plotting the predicted daily counts and compare it with the original data.
+
+```{r}
+samples <- df$Date[8:13]
+samples<-data.frame(samples)
+
+dove_predict <- predict(dove_bass_model,samples,verbose=TRUE)
+
+ggplot() +
+  geom_line(aes(x=df$Date, y=df$Dove_real_beauty_sketches), color="blue") +
+  geom_point(aes(x=df$Date, y=df$Dove_real_beauty_sketches), color="blue") +
+  geom_line(aes(x=df$Date, y=dove_predict[1:21]), color="red") +
+  geom_point(aes(x=df$Date, y=dove_predict[1:21]), color="red") +
+  xlab("Days") +
+  ylab("Count of tweets") +
+  ggtitle("Comparison of original and predicted daily counts of tweets")
+```
+
+The model prediction was not very accurate due to the lesser number of sample points used in the build-up of the model.
+
+The number of points is supposed to be in a ratio of 80:20, that is, 80% of the data should have been used to train the model and the remaining 20% can be used to test/predict.
+
+# Key Observations:
+
+**Variability**: The daily tweet counts exhibit significant variability. Some days have relatively high tweet counts, while others have much lower counts. This suggests that the level of online engagement with the topic fluctuates over time.
+
+**Peaks and Troughs**: There are notable peaks and troughs in the data. For instance, on April 16, 2013, there was a substantial increase in the number of tweets (6143), which may indicate a particular event or a surge in interest on that day. Conversely, there are days with low tweet counts, such as May 5, 2013 (209 tweets).
+
+**Overall Trend**: While there are fluctuations, you can examine the overall trend by analyzing the data over a longer time frame. It may be helpful to calculate the average daily tweet count, identify any trend patterns, or assess whether there is a gradual increase or decrease in engagement with the topic over the entire period.
+
+**Data Context**: To gain a deeper understanding of the data, it's important to consider the context surrounding the "Dove_real_beauty_sketches" campaign during this time. Factors such as marketing initiatives, events, or external influences could explain the fluctuations in tweet counts.
